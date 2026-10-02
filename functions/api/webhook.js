@@ -1,5 +1,5 @@
-import { hmacSHA256Hex, timingSafeEqual } from "../_lib/crypto.js";
-import { FILE_MAP, BUNDLE_EXTRAS_KEY, PRICES_PAISE } from "../_lib/config.js";
+import { hmacSHA256Hex, timingSafeEqual, buildDownloadToken } from "../_lib/crypto.js";
+import { FILE_MAP, BONUS_AUDIO_KEY, PRICES_PAISE } from "../_lib/config.js";
 import { sendDeliveryEmail } from "../_lib/email.js";
 import { sendMetaPurchaseEvent } from "../_lib/meta-capi.js";
 
@@ -26,20 +26,20 @@ export async function onRequestPost({ request, env }) {
 
     if (tier && language && email && FILE_MAP[tier]?.[language]) {
       // NOTE (v1 limitation): there's no de-duplication store here (no D1/KV
-      // wired up yet), so if Razorpay retries this webhook the buyer could
-      // get a second email. Low-frequency risk for a launch, but add a KV
-      // check on payment.id before going to real scale.
-      const { buildDownloadToken } = await import("../_lib/crypto.js");
+      // wired up yet for dedup — the KV namespace in use is only for the
+      // book files), so if Razorpay retries this webhook the buyer could
+      // get a second email. Low-frequency risk for a launch, but worth a
+      // KV dedup check on payment.id before going to real scale.
       const fileKey = FILE_MAP[tier][language];
       const token = await buildDownloadToken(env, fileKey);
       const primaryUrl = `${env.SITE_URL}/api/download?token=${token}`;
       const links = [{ label: "Download your ebook", url: primaryUrl }];
 
-      if (tier === "bundle" && BUNDLE_EXTRAS_KEY[language]) {
-        const extrasToken = await buildDownloadToken(env, BUNDLE_EXTRAS_KEY[language]);
+      if (BONUS_AUDIO_KEY[language]) {
+        const audioToken = await buildDownloadToken(env, BONUS_AUDIO_KEY[language]);
         links.push({
-          label: "Download Founding Reader extras",
-          url: `${env.SITE_URL}/api/download?token=${extrasToken}`,
+          label: "Download bonus audio — Prologue & Epilogue",
+          url: `${env.SITE_URL}/api/download?token=${audioToken}`,
         });
       }
 

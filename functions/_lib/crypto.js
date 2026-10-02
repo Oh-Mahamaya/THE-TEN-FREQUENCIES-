@@ -24,7 +24,8 @@ export function timingSafeEqual(a, b) {
   return mismatch === 0;
 }
 
-// Build a signed, expiring token for the /api/download link.
+// Workers KV has no built-in expiring-link feature (unlike Bunny/R2 presigned
+// URLs), so the Worker gates access itself with a signed, expiring token.
 // Token = base64url(key) . expiryUnixSeconds . hmacHex
 export async function buildDownloadToken(env, fileKey, ttlSeconds = 60 * 60 * 48) {
   const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;

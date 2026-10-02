@@ -1,5 +1,5 @@
 const LANG_NAMES = { en: "English", bn: "Bengali (বাংলা)", hi: "Hindi (हिन्दी)" };
-const TIER_NAMES = { ebook: "Ebook", bundle: "Founding Reader Bundle" };
+const TIER_NAMES = { ebook: "Ebook" };
 
 export async function sendDeliveryEmail(env, { toEmail, tier, language, downloadLinks }) {
   const langName = LANG_NAMES[language] || language;

@@ -1,9 +1,9 @@
 # The Ten Frequencies — Landing Page
 
 Landing page for **The Ten Frequencies** book series by Shiladitya Mallick.
-Currently live content is for **Book One — *A Science of Death and Rebirth: The First Frequency*** (Decoding Maa Kali Through Quantum Physics & Psychology). Built as the exclusive direct-sale page for the ebook (India-only, Razorpay), separate from the Amazon/NotionPress paperback listing. Books 2–10 will be added to this same page as they release.
+Currently live content is for **Book One — *A Science of Death and Rebirth: The First Frequency*** (Decoding Maa Kali Through Quantum Physics & Psychology). Built as the exclusive direct-sale page for the ebook (India-only, Razorpay) — the paperback is sold separately through Amazon and Flipkart, this site just links out to those listings rather than selling it directly. Books 2–10 will be added to this same page as they release.
 
-**Status: front-end and copy are publish-ready.** No visible placeholders, wireframe notes, or "coming soon" banners remain on the page. What's left is entirely backend configuration — your own Razorpay/R2/Resend/WhatsApp credentials — see the checklist at the bottom.
+**Status: front-end and copy are publish-ready.** No visible placeholders, wireframe notes, or "coming soon" banners remain on the page. What's left is entirely backend configuration — your own Razorpay/Workers KV/Resend credentials — see the checklist at the bottom.
 
 ---
 
@@ -20,10 +20,11 @@ assets/images/mahamaya-trishul-logo.svg   — series mark, vector source (edit t
 functions/api/create-order.js       — creates a Razorpay order (called when the buyer clicks Pay)
 functions/api/verify-payment.js     — verifies the Razorpay signature, returns an instant download link
 functions/api/webhook.js            — Razorpay webhook — the AUTHORITATIVE confirmation, sends the delivery email
-functions/api/download.js           — serves the actual file from R2 given a valid signed token
-functions/_lib/config.js            — prices, and which R2 file each tier+language maps to (edit here for Book Two)
-functions/_lib/crypto.js            — signature verification + signed download token helpers
+functions/api/download.js           — serves the actual file from Workers KV given a valid signed token
+functions/_lib/config.js            — prices, and which Workers KV key each tier+language maps to (edit here for Book Two)
+functions/_lib/crypto.js            — Razorpay signature verification + signed download token helpers
 functions/_lib/email.js             — builds and sends the delivery email via Resend
+functions/_lib/meta-capi.js         — server-side Meta Purchase event (Conversions API)
 ```
 
 These `functions/` files are **Cloudflare Pages Functions** — they deploy automatically alongside the static site, no separate server or hosting needed. Each file's path under `functions/` becomes its route (`functions/api/create-order.js` → `POST /api/create-order`).
@@ -59,11 +60,21 @@ The purchase flow is: buyer pays via Razorpay → server verifies it → buyer g
    - Save — Razorpay shows you a **Webhook Secret**. Copy it; it's different from your API Key Secret.
 4. Test with [Razorpay's test cards](https://razorpay.com/docs/payments/payments/test-card-upi-details/) before flipping to live keys.
 
-### 2. Cloudflare R2 (file storage)
-1. Cloudflare dashboard → **R2** → create a bucket, e.g. `sodr-books`.
-2. Upload your PDFs matching the paths in `functions/_lib/config.js` — e.g. `book1/ebook-en.pdf`, `book1/ebook-bn.pdf`, `book1/ebook-hi.pdf`. Edit that file if you want different paths.
-3. In your **Pages project → Settings → Functions → R2 bucket bindings**, add a binding: variable name `BOOK_FILES` → bucket `sodr-books`. (Must be named `BOOK_FILES` — that's what `download.js` expects.)
-4. Leave the bucket **private** — nothing here needs public access; the app serves files itself through the signed-token route.
+### 2. Cloudflare Workers KV (file storage)
+Same Cloudflare account as Pages — no new signup. Free tier: 1GB total storage, 100,000 reads/day, values up to 25MB (a 154-page PDF is nowhere close to that limit).
+
+1. Cloudflare dashboard → **Workers & Pages → KV** → **Create a namespace**. Name it something like `sodr-books`.
+2. Upload your PDFs into it with **Wrangler** (Cloudflare's CLI — the dashboard's built-in editor is meant for small text values, not binary files):
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   wrangler kv:key put --namespace-id=<your-namespace-id> "book1/ebook-en.pdf" --path=./ebook-en.pdf
+   wrangler kv:key put --namespace-id=<your-namespace-id> "book1/ebook-bn.pdf" --path=./ebook-bn.pdf
+   wrangler kv:key put --namespace-id=<your-namespace-id> "book1/ebook-hi.pdf" --path=./ebook-hi.pdf
+   ```
+   The namespace ID is shown on the KV namespace's page in the dashboard. Keys must match `functions/_lib/config.js` exactly — edit that file if you want different paths.
+3. **Pages project → Settings → Functions → KV namespace bindings** → add a binding: variable name `BOOK_FILES` → the namespace you just created. (Must be named `BOOK_FILES` — that's what `download.js` expects.)
+4. Nothing here is public by default — `download.js` is the only thing that can read it, and only with a validly signed, unexpired token.
 
 ### 3. Resend (delivery email)
 1. Create an account at [resend.com](https://resend.com) — generous free tier.
@@ -107,9 +118,9 @@ All translatable strings live in one `translations` object near the bottom of `i
 
 The goddess names in the "Series" wheel section (Kali, Tara, Tripura Sundari, etc.) are transliterated into Bengali/Hindi script — double-check these match how you'd want them spelled.
 
-## Audio — Founding Reader bonus
+## Audio — bonus with every ebook
 
-The Founding Reader Bundle now promises author-narrated audio (Prologue, Epilogue, and the mantras). This doesn't exist yet, but one real ingredient does:
+Every ebook purchase now promises author-narrated bonus audio (Prologue and Epilogue only — not the full mantra set, scoped down from an earlier draft). This doesn't exist yet, but one real ingredient does:
 
 **`audio-assets/ambient-bed-432hz.wav`** (and an `.mp3` preview) — an original ambient drone built as the sonic bed to record narration over. It's a root–fifth–octave chord (216 / 432 / 648 / 864 Hz) with each layer breathing at a slightly different slow rate, plus a touch of filtered warmth noise, normalized with headroom so a voice track sits cleanly on top. It loops seamlessly at 2 minutes (crossfaded seam) — loop it in your editor to cover narration of any length.
 
@@ -120,7 +131,7 @@ The Founding Reader Bundle now promises author-narrated audio (Prologue, Epilogu
 4. Apply one fade-in and one fade-out to the *finished mix* (not the loop file itself) — a few seconds each, at the very start and end only.
 5. Export as MP3, 192kbps is plenty for spoken word.
 
-These audio files aren't wired into the website or the checkout delivery yet — that's the next step once you have real narration recorded and want it in the Founding Reader bundle's actual download.
+These audio files aren't wired into the website or the checkout delivery yet — that's the next step once you have real narration recorded. Once it exists, set `BONUS_AUDIO_KEY` in `functions/_lib/config.js` per language and it'll start shipping automatically as a second download link alongside the ebook.
 
 ## Design notes
 
@@ -138,5 +149,5 @@ These audio files aren't wired into the website or the checkout delivery yet —
 - [ ] Do a full end-to-end test purchase with Razorpay **test** keys before touching live keys
 - [ ] Replace `YOUR_PIXEL_ID` with your real Meta Pixel ID before any ad spend
 - [ ] Add Open Graph / share meta tags (currently just a plain `<title>`)
-- [ ] Confirm draft pricing (₹249 / ₹599) and refund policy
+- [ ] Confirm draft pricing (₹249) and refund policy
 - [x] English, Bengali, and Hindi PDFs are all ready — language selector shows all three as available, and checkout now delivers the file matching whichever language is selected
