@@ -65,7 +65,6 @@
   body{background:var(--black); color:var(--bone); font-family:var(--body); line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;}
   a{color:inherit;}
 
-
   .grain{
     position:fixed; inset:0; z-index:998; pointer-events:none; opacity:0.05; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
@@ -153,13 +152,20 @@
     color:var(--ember);
   }
   .sound-toggle{
-    margin-top:44px; display:inline-flex; align-items:center; gap:10px; background:transparent; border:1px solid var(--hair);
-    color:var(--bone); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
-    padding:12px 20px; border-radius:999px; cursor:pointer; transition:border-color 0.2s ease;
+    margin-top:44px; display:inline-flex; align-items:center; gap:12px;
+    background:rgba(200,31,16,0.14); border:1px solid var(--blood-bright);
+    color:var(--bone); font-family:var(--mono); font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
+    padding:10px 24px 10px 10px; border-radius:999px; cursor:pointer;
+    transition:background 0.2s ease, box-shadow 0.2s ease;
   }
-  .sound-toggle:hover{border-color:var(--ember);}
-  .sound-toggle .dot{width:6px; height:6px; border-radius:50%; background:var(--muted); transition:background 0.2s ease;}
-  .sound-toggle.on .dot{background:var(--ember-hot); box-shadow:0 0 8px var(--ember-hot);}
+  .sound-toggle:hover{background:rgba(200,31,16,0.22); box-shadow:0 0 24px rgba(200,31,16,0.3);}
+  .sound-toggle .play-icon{
+    width:34px; height:34px; border-radius:50%; background:var(--blood-bright); color:var(--bone);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-size:13px; transition:background 0.2s ease;
+  }
+  .sound-toggle.playing .play-icon{background:var(--ember-hot);}
+  .sound-toggle.loading .play-icon{opacity:0.6;}
   .scroll-cue{margin-top:52px; font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; animation:cue-bob 2.4s ease-in-out infinite;}
   @keyframes cue-bob{0%,100%{transform:translateY(0); opacity:0.6;} 50%{transform:translateY(6px); opacity:1;}}
 
@@ -405,7 +411,8 @@
     footer .mark{height:52px;}
     .cover-frame{width:min(300px,82vw);}
     .hero .whisper{font-size:11px; padding:0 10px;}
-    .sound-toggle{margin-top:28px; padding:10px 16px;}
+    .sound-toggle{margin-top:28px; padding:8px 20px 8px 8px;}
+    .sound-toggle .play-icon{width:30px; height:30px; font-size:12px;}
     .scroll-cue{margin-top:30px;}
     .hook{padding:90px 0;}
     .hook blockquote{font-size:23px;}
@@ -440,7 +447,8 @@
 
   /* ---------- modern frequency-bars accent (modern + ancient pairing) ---------- */
   .freq-bars{display:flex; align-items:flex-end; gap:3px; height:16px; margin-top:16px;}
-  .freq-bars span{width:2px; background:var(--ember); animation:bar-pulse 1.2s ease-in-out infinite;}
+  .freq-bars span{width:2px; height:4px; background:var(--ember); animation:bar-pulse 1.2s ease-in-out infinite; animation-play-state:paused;}
+  .sound-toggle.playing ~ .freq-bars span{animation-play-state:running;}
   .freq-bars span:nth-child(1){animation-delay:0s;}
   .freq-bars span:nth-child(2){animation-delay:0.15s;}
   .freq-bars span:nth-child(3){animation-delay:0.3s;}
@@ -568,8 +576,10 @@ fbq('track', 'PageView');
       <h1 data-i18n="hero_title">A Science of <em>Death</em> and Rebirth</h1>
       <p class="sub" data-i18n="hero_sub">The First Frequency — Decoding Maa Kali Through Quantum Physics &amp; Psychology</p>
       <p class="whisper" data-i18n="hero_whisper">Few have entered the cremation ground and written down what happened.</p>
-      <button class="sound-toggle" id="sound-toggle-btn">
-        <span class="dot"></span><span class="label" data-i18n="sound_off">Enter with sound</span>
+      <audio id="welcome-audio" preload="none" src="https://res.cloudinary.com/xbebhkge/video/upload/v1791318982/Intro_Welcome_Death_and_Rebirth.mp3"></audio>
+      <button class="sound-toggle" id="sound-toggle-btn" aria-label="Play welcome message">
+        <span class="play-icon" aria-hidden="true">▶</span>
+        <span class="label" data-i18n="sound_off">Play Welcome Message</span>
       </button>
       <div class="freq-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
     </div>
@@ -1009,8 +1019,8 @@ fbq('track', 'PageView');
     "hero_title": "A Science of <em>Death</em> and Rebirth",
     "hero_sub": "The First Frequency — Decoding Maa Kali Through Quantum Physics &amp; Psychology",
     "hero_whisper": "Few have entered the cremation ground and written down what happened.",
-    "sound_off": "Enter with sound",
-    "sound_on": "Sound on",
+    "sound_off": "Play Welcome Message",
+    "sound_on": "Playing…",
     "scroll_cue": "Scroll ↓",
     "hook_quote": "“There is a ritual for lying down with the dead. Almost no one does it. He did — and wrote down everything that happened after.”",
     "hook_cite": "— from the Prologue",
@@ -1104,8 +1114,8 @@ fbq('track', 'PageView');
     "hero_title": "<em>মৃত্যু</em> ও পুনর্জন্মের একটি বিজ্ঞান",
     "hero_sub": "প্রথম ফ্রিকোয়েন্সি — কোয়ান্টাম পদার্থবিজ্ঞান ও মনোবিজ্ঞানের মাধ্যমে মা কালীর পাঠোদ্ধার",
     "hero_whisper": "শ্মশানে প্রবেশ করে যা ঘটেছিল, তা লিখে রাখার সাহস দেখিয়েছেন খুব কম মানুষই।",
-    "sound_off": "শব্দ সহ প্রবেশ করুন",
-    "sound_on": "শব্দ চালু",
+    "sound_off": "স্বাগত বার্তা শুনুন",
+    "sound_on": "চলছে…",
     "scroll_cue": "স্ক্রল করুন ↓",
     "hook_quote": "“মৃতের পাশে শুয়ে থাকার একটি আচার আছে। প্রায় কেউই তা করে না। তিনি করেছিলেন — আর যা ঘটেছিল, সব লিখে রেখেছিলেন।”",
     "hook_cite": "— মুখবন্ধ থেকে",
@@ -1199,8 +1209,8 @@ fbq('track', 'PageView');
     "hero_title": "<em>मृत्यु</em> और पुनर्जन्म का एक विज्ञान",
     "hero_sub": "पहली फ़्रीक्वेंसी — क्वांटम भौतिकी और मनोविज्ञान के माध्यम से माँ काली को समझना",
     "hero_whisper": "श्मशान में प्रवेश करके जो हुआ, उसे लिख पाने का साहस बहुत कम लोगों ने दिखाया है।",
-    "sound_off": "ध्वनि के साथ प्रवेश करें",
-    "sound_on": "ध्वनि चालू",
+    "sound_off": "स्वागत संदेश सुनें",
+    "sound_on": "चल रहा है…",
     "scroll_cue": "स्क्रॉल करें ↓",
     "hook_quote": "“मृत शरीर के पास लेटने की एक विधि है। लगभग कोई इसे नहीं करता। उन्होंने किया — और जो कुछ हुआ, सब लिख दिया।”",
     "hook_cite": "— प्रस्तावना से",
@@ -1320,7 +1330,7 @@ fbq('track', 'PageView');
     const soundBtn = document.getElementById('sound-toggle-btn');
     if(soundBtn){
       const label = soundBtn.querySelector('.label');
-      label.textContent = soundBtn.classList.contains('on') ? dict.sound_on : dict.sound_off;
+      label.textContent = soundBtn.classList.contains('playing') ? dict.sound_on : dict.sound_off;
     }
 
     document.querySelectorAll('.top-lang-btn').forEach(b => b.classList.toggle('selected', b.dataset.lang === lang));
@@ -1334,14 +1344,42 @@ fbq('track', 'PageView');
     tab.addEventListener('click', () => applyLanguage(tab.dataset.langcode));
   });
 
-  // sound toggle — language-aware label
+  // welcome audio — real playback, button reflects actual audio state (not a fake toggle)
+  const welcomeAudio = document.getElementById('welcome-audio');
   const soundToggleBtn = document.getElementById('sound-toggle-btn');
-  if(soundToggleBtn){
-    soundToggleBtn.addEventListener('click', () => {
-      soundToggleBtn.classList.toggle('on');
-      const label = soundToggleBtn.querySelector('.label');
+  if(soundToggleBtn && welcomeAudio){
+    const icon = soundToggleBtn.querySelector('.play-icon');
+    const label = soundToggleBtn.querySelector('.label');
+
+    function setSoundLabel(playing){
       const dict = translations[currentLang];
-      label.textContent = soundToggleBtn.classList.contains('on') ? dict.sound_on : dict.sound_off;
+      label.textContent = playing ? dict.sound_on : dict.sound_off;
+    }
+
+    soundToggleBtn.addEventListener('click', () => {
+      if(welcomeAudio.paused){
+        soundToggleBtn.classList.add('loading');
+        welcomeAudio.play().catch(() => { soundToggleBtn.classList.remove('loading'); });
+      } else {
+        welcomeAudio.pause();
+      }
+    });
+
+    welcomeAudio.addEventListener('playing', () => {
+      soundToggleBtn.classList.remove('loading');
+      soundToggleBtn.classList.add('playing');
+      icon.textContent = '❚❚';
+      setSoundLabel(true);
+    });
+    welcomeAudio.addEventListener('pause', () => {
+      soundToggleBtn.classList.remove('playing');
+      icon.textContent = '▶';
+      setSoundLabel(false);
+    });
+    welcomeAudio.addEventListener('ended', () => {
+      soundToggleBtn.classList.remove('playing');
+      icon.textContent = '▶';
+      setSoundLabel(false);
     });
   }
 

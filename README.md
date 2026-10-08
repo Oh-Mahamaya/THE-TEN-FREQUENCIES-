@@ -120,7 +120,11 @@ The goddess names in the "Series" wheel section (Kali, Tara, Tripura Sundari, et
 
 ## Audio — bonus with every ebook
 
-Every ebook purchase now promises author-narrated bonus audio (Prologue and Epilogue only — not the full mantra set, scoped down from an earlier draft). This doesn't exist yet, but one real ingredient does:
+Two separate audio things live in this project — don't confuse them:
+
+**1. The website welcome message (live now).** The hero's "Play Welcome Message" button plays a ~30-second intro hosted on Cloudinary (`welcome-audio` element in `index.html` — change the `src` there if you ever replace it). It's click-to-play only (browsers block autoplay with sound anyway), and the little frequency bars next to it only animate while the audio is actually playing.
+
+**2. The bonus audio shipped with every ebook purchase (not built yet).** Author-narrated Author's Note, Prologue, and Epilogue — use the separate `sodr-narration-script.md` document for the exact cleaned text to feed into ElevenLabs. **Keep that script out of this repo:** everything in this folder is publicly served once deployed to Cloudflare Pages, and the script contains your book text. Package the audio as three separate tracks, not one merged file. This doesn't exist yet, but one real ingredient does:
 
 **`audio-assets/ambient-bed-432hz.wav`** (and an `.mp3` preview) — an original ambient drone built as the sonic bed to record narration over. It's a root–fifth–octave chord (216 / 432 / 648 / 864 Hz) with each layer breathing at a slightly different slow rate, plus a touch of filtered warmth noise, normalized with headroom so a voice track sits cleanly on top. It loops seamlessly at 2 minutes (crossfaded seam) — loop it in your editor to cover narration of any length.
 
@@ -131,7 +135,7 @@ Every ebook purchase now promises author-narrated bonus audio (Prologue and Epil
 4. Apply one fade-in and one fade-out to the *finished mix* (not the loop file itself) — a few seconds each, at the very start and end only.
 5. Export as MP3, 192kbps is plenty for spoken word.
 
-These audio files aren't wired into the website or the checkout delivery yet — that's the next step once you have real narration recorded. Once it exists, set `BONUS_AUDIO_KEY` in `functions/_lib/config.js` per language and it'll start shipping automatically as a second download link alongside the ebook.
+The bonus audio files aren't wired into checkout delivery yet — that's the next step once you have real narration recorded. Once it exists, set `BONUS_AUDIO_KEY` in `functions/_lib/config.js` per language and it'll start shipping automatically as a second download link alongside the ebook.
 
 ## Design notes
 
@@ -144,7 +148,7 @@ These audio files aren't wired into the website or the checkout delivery yet —
 ## Before this goes live behind ad spend
 
 - [x] Placeholder copy replaced — the hook line, refund policy, and hero whisper line all now read as finished copy. **Two of these are still my best-guess text, not yours**: the hook quote ("There is a ritual for lying down with the dead...") stands in for your actual Prologue line, and the refund policy is a sensible default, not your stated policy — both are easy to edit via the `translations` object (see "Language switching" below) or, for the hook quote, search `hook_quote` in each of the three language blocks.
-- [ ] Decide the sound toggle — either wire in a real ambient track or remove it; it's currently a UI stub with no audio
+- [x] Welcome audio button is wired to a real Cloudinary-hosted MP3 and plays/pauses correctly
 - [x] Checkout, payment verification, file delivery, and WhatsApp invite are built — see "Payments, file delivery & WhatsApp" above to actually configure the accounts and env vars; nothing works until those are filled in
 - [ ] Do a full end-to-end test purchase with Razorpay **test** keys before touching live keys
 - [ ] Replace `YOUR_PIXEL_ID` with your real Meta Pixel ID before any ad spend
